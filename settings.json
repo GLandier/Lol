@@ -1,0 +1,14 @@
+{
+  "show_enemies": true,
+  "show_map": true,
+  "show_diff": true,
+  "show_timers": true,
+  "show_wards": true,
+  "show_spikes": true,
+  "show_build": true,
+  "cs_show_bans": true,
+  "cs_show_enemies": true,
+  "cs_show_counters": true,
+  "cs_show_best_pick": true,
+  "cs_show_runes": true
+}
