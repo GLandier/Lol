@@ -52,47 +52,91 @@ def detect_role(participant: dict) -> str:
 
 def get_high_elo_puuids(client: RiotAPIClient, max_players: int = 200) -> list[str]:
     """
-    Récupère les PUUIDs des joueurs Challenger, GM et Master.
-    Ces joueurs ont les meilleures stats → idéal pour la méta.
+    Récupère les PUUIDs des joueurs de tous les tiers avec un cap par tier.
+    Distribution : Challenger (tous) + GM (tous) + Master (cap) + Diamond/Emerald/Platinum (cap chacun)
     """
     puuids = []
+    per_tier_cap = max_players // 6  # cap par tier pour avoir un mix équilibré
 
-    tiers = [
-        f"{client.base_url}/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5",
-        f"{client.base_url}/lol/league/v4/grandmasterleagues/by-queue/RANKED_SOLO_5x5",
-        f"{client.base_url}/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5",
-    ]
-
-    tier_names = ["Challenger", "GrandMaster", "Master"]
-
-    for url, name in zip(tiers, tier_names):
-        data = client._get(url)
-        if not data:
-            continue
-
-        entries = data.get("entries", [])
-        print(f"  {name}: {len(entries)} joueurs trouvés")
-
+    def collect_puuids(entries, cap):
+        collected = []
         for entry in entries:
-            # Riot API v4 inclut le puuid directement dans les entrées de ligue
             puuid = entry.get("puuid")
             if puuid:
-                puuids.append(puuid)
+                collected.append(puuid)
             else:
-                # Fallback : résoudre via summonerId
                 summoner_id = entry.get("summonerId")
                 if summoner_id:
                     url_s = f"{client.base_url}/lol/summoner/v4/summoners/{summoner_id}"
                     summoner = client._get(url_s)
                     if summoner and summoner.get("puuid"):
-                        puuids.append(summoner["puuid"])
-
-            if len(puuids) >= max_players:
+                        collected.append(summoner["puuid"])
+            if len(collected) >= cap:
                 break
+        return collected
 
-        if len(puuids) >= max_players:
-            break
+    # Challenger / Grandmaster : tous les joueurs (peu nombreux)
+    for url, name in [
+        (f"{client.base_url}/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5", "Challenger"),
+        (f"{client.base_url}/lol/league/v4/grandmasterleagues/by-queue/RANKED_SOLO_5x5", "GrandMaster"),
+    ]:
+        data = client._get(url)
+        if not data:
+            continue
+        entries = data.get("entries", [])
+        collected = collect_puuids(entries, len(entries))
+        puuids.extend(collected)
+        print(f"  {name}: {len(collected)} joueurs collectés")
+        time.sleep(0.5)
 
+    # Master : cap pour laisser de la place aux autres tiers
+    data = client._get(f"{client.base_url}/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5")
+    if data:
+        entries = data.get("entries", [])
+        collected = collect_puuids(entries, per_tier_cap)
+        puuids.extend(collected)
+        print(f"  Master: {len(collected)} joueurs collectés (/{len(entries)} dispo)")
+    time.sleep(0.5)
+
+    # Diamond / Emerald / Platinum : endpoint /entries/{TIER}/{DIVISION}
+    entry_tiers = [
+        ("DIAMOND", "Diamond"),
+        ("EMERALD", "Emerald"),
+        ("PLATINUM", "Platinum"),
+    ]
+    divisions = ["I", "II", "III", "IV"]
+
+    for tier, name in entry_tiers:
+        tier_collected = []
+        for division in divisions:
+            if len(tier_collected) >= per_tier_cap:
+                break
+            page = 1
+            while len(tier_collected) < per_tier_cap:
+                url = (f"{client.base_url}/lol/league/v4/entries/RANKED_SOLO_5x5"
+                       f"/{tier}/{division}?page={page}")
+                entries = client._get(url)
+                if not entries:
+                    break
+                for entry in entries:
+                    puuid = entry.get("puuid")
+                    if puuid:
+                        tier_collected.append(puuid)
+                    else:
+                        summoner_id = entry.get("summonerId")
+                        if summoner_id:
+                            url_s = f"{client.base_url}/lol/summoner/v4/summoners/{summoner_id}"
+                            summoner = client._get(url_s)
+                            if summoner and summoner.get("puuid"):
+                                tier_collected.append(summoner["puuid"])
+                    if len(tier_collected) >= per_tier_cap:
+                        break
+                if len(entries) < 205:
+                    break
+                page += 1
+                time.sleep(0.5)
+        puuids.extend(tier_collected[:per_tier_cap])
+        print(f"  {name}: {len(tier_collected[:per_tier_cap])} joueurs collectés")
         time.sleep(0.5)
 
     print(f"  Total PUUIDs collectés: {len(puuids)}")
@@ -467,4 +511,4 @@ if __name__ == "__main__":
     init_db()
 
     # Test léger : 5 joueurs, 5 parties chacun (min_games=1 pour voir les résultats)
-    run_collection(max_players=5, matches_per_player=5, min_games_threshold=1)
+    run_collection(max_players=5000, matches_per_player=100, min_games_threshold=50)
