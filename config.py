@@ -17,7 +17,7 @@ RATE_LIMIT_PER_SECOND = 20
 RATE_LIMIT_PER_2MIN = 100
 
 # Live game polling interval (secondes)
-LIVE_POLL_INTERVAL = 5
+LIVE_POLL_INTERVAL = 3
 
 # BDD locale
 DB_PATH = "data/lol_tool.db"

@@ -312,6 +312,10 @@ ADAPTIVE_RULES = {
             3031,  # Infinity Edge
             3036,  # Lord Dominik's Regards
             3033,  # Mortal Reminder
+            3071,  # Black Cleaver
+            3142,  # Youmuu's Ghostblade
+            6692,  # Eclipse
+            3156,  # Maw of Malmortius
             3035,  # Last Whisper
             3071,  # Black Cleaver
             6692,  # Eclipse
@@ -349,7 +353,6 @@ ADAPTIVE_RULES = {
     # Ennemis avec beaucoup de soins → anti-heal
     "heavy_heal": {
         "trigger_items": [
-            3174,  # Athene's Unholy Grail
             3107,  # Redemption
             3504,  # Ardent Censer
             2065,  # Shurelya's Battlesong
@@ -366,8 +369,8 @@ ADAPTIVE_RULES = {
     "heavy_shields": {
         "trigger_items": [
             3190,  # Locket of the Iron Solari
-            8001,  # Anathema's Chains
             3109,  # Knight's Vow
+            2065,  # Shurelya's Battlesong
         ],
         "counter_items": [
             6035,  # Serpent's Fang
@@ -397,7 +400,7 @@ def get_adaptive_recommendations(champion_id: int, role: str,
         # Compte combien de trigger items l'ennemi a
         triggers_found = [iid for iid in rule["trigger_items"] if iid in enemy_set]
 
-        if len(triggers_found) >= 2:
+        if len(triggers_found) >= 1:
             priority = len(triggers_found)
             recommendations.append({
                 "rule":          rule_name,

@@ -4,7 +4,7 @@
   "show_diff": true,
   "show_timers": true,
   "show_wards": true,
-  "show_spikes": true,
+  "show_spikes": false,
   "show_build": true,
   "cs_show_bans": true,
   "cs_show_enemies": true,
