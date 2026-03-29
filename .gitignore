@@ -1,0 +1,16 @@
+# Base de données locale (trop grosse pour GitHub)
+data/lol_tool.db
+data/lol_tool.db-wal
+data/lol_tool.db-shm
+
+# Clé API
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
